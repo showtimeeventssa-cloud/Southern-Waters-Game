@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07141b">
+<title>Southern Waters — South African Fishing Expedition</title>
+<style>
+:root{--cyan:#70e5ee;--gold:#e8c57c;--panel:rgba(5,15,21,.78);--line:rgba(180,231,235,.28)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07141b;color:#f3f7f5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;touch-action:none}
+#renderCanvas{width:100%;height:100%;display:block;outline:none;touch-action:none}
+#orientation{display:none;position:fixed;inset:0;z-index:50;background:linear-gradient(145deg,#08171d,#122e38);align-items:center;justify-content:center;text-align:center;padding:28px}
+#orientation .card{max-width:340px}.rotate{font-size:48px;margin-bottom:14px;color:var(--cyan)}
+#menu{position:fixed;inset:0;z-index:10;background:linear-gradient(90deg,rgba(2,10,14,.92),rgba(3,15,19,.48) 55%,rgba(3,15,19,.14)),linear-gradient(0deg,rgba(2,8,12,.8),transparent 55%);display:flex;align-items:center}
+#menuContent{padding:clamp(18px,4vw,52px);width:min(520px,90vw)}
+.eyebrow{color:var(--cyan);letter-spacing:.24em;text-transform:uppercase;font-size:11px;font-weight:800}
+h1{font-size:clamp(38px,6vw,68px);line-height:.93;letter-spacing:-.045em;margin:14px 0 10px;text-transform:uppercase;text-shadow:0 4px 25px #000}
+h1 span{color:var(--gold)}.sub{color:#d4e2df;line-height:1.5;max-width:400px;font-size:14px}
+button{border:1px solid var(--line);color:#f6fbf9;background:rgba(9,27,34,.84);padding:12px 16px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;border-radius:3px;font-size:11px;cursor:pointer}
+button:active{transform:scale(.98)}button.primary{background:var(--gold);color:#10191b;border-color:var(--gold)}
+.menuButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:25px;max-width:390px}.menuButtons .primary{grid-column:span 2;padding:16px}
+#menuFooter{position:absolute;bottom:18px;left:clamp(18px,4vw,52px);right:20px;display:flex;justify-content:space-between;gap:10px;color:#b4c9c9;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+#hud{display:none;position:fixed;inset:0;z-index:5;pointer-events:none}
+.hudTop{position:absolute;left:12px;right:12px;top:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hudPanel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);padding:9px 11px;border-radius:4px;min-width:100px}
+.small{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#a6c3c5}.value{font-size:14px;font-weight:800;margin-top:3px}
+#toast{position:absolute;top:78px;left:50%;transform:translateX(-50%);padding:10px 14px;background:rgba(4,17,22,.88);border:1px solid var(--line);font-size:12px;max-width:85vw;text-align:center;display:none}
+#reticle{position:absolute;left:50%;top:50%;width:8px;height:8px;border:1px solid rgba(255,255,255,.7);border-radius:50%;transform:translate(-50%,-50%);opacity:.8}
+#bottomHud{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+#controls{display:flex;gap:8px;align-items:flex-end;pointer-events:auto}
+#actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;max-width:56vw;pointer-events:auto}
+.action{min-width:72px;min-height:46px}
+#movePad{width:118px;height:118px;position:relative;border-radius:50%;background:rgba(5,16,21,.38);border:1px solid rgba(190,230,230,.25);pointer-events:auto;touch-action:none}
+#stick{width:44px;height:44px;position:absolute;left:36px;top:36px;border-radius:50%;background:rgba(112,229,238,.58);border:1px solid rgba(255,255,255,.65);pointer-events:none}
+#statusBar{position:absolute;bottom:142px;left:50%;transform:translateX(-50%);width:min(250px,50vw);display:none}
+#statusLabel{font-size:9px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:5px;text-align:center}
+#tensionOuter{height:7px;background:#263a3d;border:1px solid #8da7a4;border-radius:10px;overflow:hidden}#tension{height:100%;width:0;background:#75e3dc}
+#catchCard{display:none;position:absolute;inset:0;background:rgba(1,8,11,.64);align-items:center;justify-content:center;pointer-events:auto;padding:20px}
+#catchInner{width:min(420px,90vw);padding:24px;background:rgba(6,21,27,.95);border:1px solid var(--gold);text-align:center;box-shadow:0 20px 80px #000}
+#catchSpecies{font-size:28px;font-weight:850;text-transform:uppercase;margin:8px 0;color:var(--gold)}
+#catchDetails{font-size:13px;color:#c4d7d4;margin-bottom:18px;line-height:1.5}
+#mapChip{font-size:10px;letter-spacing:.08em}
+#help{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,90vw);background:rgba(4,17,22,.96);border:1px solid var(--line);padding:20px;pointer-events:auto}
+#help h2{margin:0 0 12px;font-size:20px}#help p{font-size:13px;line-height:1.55;color:#d0dfdc}
+#loading{position:fixed;inset:0;z-index:60;background:#07141b;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center}
+.spinner{width:34px;height:34px;border:2px solid #29454b;border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media (orientation:portrait){#orientation{display:flex}#hud,#menu{visibility:hidden}}
+@media (max-height:430px){.hudPanel{padding:6px 8px}.value{font-size:12px}#movePad{width:92px;height:92px}#stick{left:26px;top:26px;width:38px;height:38px}.action{min-width:64px;min-height:40px;padding:9px}#bottomHud{bottom:7px}#statusBar{bottom:110px}}
+</style>
+</head>
+<body>
+<canvas id="renderCanvas" aria-label="3D fishing game"></canvas>
+<div id="loading"><div class="spinner"></div><strong>SOUTHERN WATERS</strong><span style="font-size:12px;color:#9cb9bc">Loading the 3D lake…</span><span id="loadError" style="max-width:80vw;font-size:12px;color:#f4b9a9"></span></div>
+<div id="orientation"><div class="card"><div class="rotate">↻</div><div class="eyebrow">Southern Waters</div><h2>Rotate your phone</h2><p>For proper first-person 3D gameplay, turn your iPhone sideways into landscape mode.</p></div></div>
+<div id="menu"><div id="menuContent">
+<div class="eyebrow">South African Fishing Expedition</div>
+<h1>Southern<br><span>Waters</span></h1>
+<p class="sub">Explore the water. Read the conditions. Choose your tackle. Earn your next upgrade. A 3D fishing prototype set on South African waters.</p>
+<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:17px"><span class="hudPanel" style="min-width:0"><span class="small">Location</span><div class="value">Hartbeespoort Dam</div></span><span class="hudPanel" style="min-width:0"><span class="small">Mode</span><div class="value">Free Roam</div></span></div>
+<div class="menuButtons"><button class="primary" id="startBtn">Start Fishing</button><button id="watersBtn">Explore Waters</button><button id="gearBtn">Tackle & Gear</button><button id="helpBtn">How to Play</button></div>
+</div><div id="menuFooter"><span>Early playable prototype · v1.0 3D</span><span>Touch controls · Landscape</span></div></div>
+<div id="hud">
+<div class="hudTop">
+<div class="hudPanel"><div class="small">Location / Water</div><div class="value" id="waterName">Hartbeespoort Dam</div><div class="small" id="weather">Late afternoon · Light breeze</div></div>
+<div class="hudPanel"><div class="small">Angler funds</div><div class="value" id="cash">R 250</div><div class="small" id="level">Level 1 · Rookie</div></div>
+<div class="hudPanel"><div class="small">Equipment</div><div class="value" id="equip">Starter spinning rod</div><div class="small" id="mapChip">Foot fishing</div></div>
+</div>
+<div id="reticle"></div><div id="toast"></div>
+<div id="statusBar"><div id="statusLabel">Line tension</div><div id="tensionOuter"><div id="tension"></div></div></div>
+<div id="bottomHud"><div id="controls"><div id="movePad"><div id="stick"></div></div></div><div id="actions"><button class="action" id="castBtn">Cast</button><button class="action" id="reelBtn">Reel In</button><button class="action" id="boatBtn">Boat</button><button class="action" id="changeWaterBtn">Waters</button><button class="action" id="pauseBtn">Menu</button></div></div>
+<div id="catchCard"><div id="catchInner"><div class="eyebrow">Catch landed</div><div id="catchSpecies">Largemouth Yellowfish</div><div id="catchDetails"></div><button class="primary" id="keepBtn">Keep fish · Collect reward</button> <button id="releaseBtn">Release</button></div></div>
+<div id="help"><h2>How to play</h2><p><b>Move:</b> drag the left joystick. <b>Look:</b> drag the open right side of the screen. The world is rendered in real-time 3D.</p><p><b>Cast:</b> tap Cast to send the float into the water. Wait for a bite, then tap Reel In repeatedly to fight the fish. Keep an eye on line tension; stop reeling briefly if it becomes critical.</p><p><b>Boat:</b> toggle the boat mode to move out from shore. This prototype has basic boat movement and a first-person fishing loop; not all planned equipment or species are implemented yet.</p><button id="closeHelp">Close</button></div>
+</div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(() => {
+const $=id=>document.getElementById(id);
+const canvas=$('renderCanvas');
+const loadError=$('loadError');
+if(!window.BABYLON){loadError.textContent='3D engine did not load. Check your internet connection and reload this page.';return;}
+const engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},true);
+let scene,camera,playerRoot,rodRoot,lineMesh,bobber,boatMesh,water,waterMat,fishMesh;
+let mode='shore',state='idle',cash=250,level=1,xp=0,castTimer=0,biteAt=0,tension=0,fishPower=0,fishName='',fishWeight=0,castPoint=null,boatSpeed=0;
+let move={x:0,y:0},look={x:0,y:0},lastLook=null,dragging=false,gameStarted=false,rodQuality=0;
+const waters=[
+{name:'Hartbeespoort Dam',species:['Common carp','African sharptooth catfish','Largemouth yellowfish','Mozambique tilapia'],color:'#3e817d'},
+{name:'Vaal Dam',species:['Common carp','Orange river mudfish','Largemouth yellowfish','African sharptooth catfish'],color:'#548c8c'},
+{name:'Bronkhorstspruit Dam',species:['Common carp','Mozambique tilapia','African sharptooth catfish'],color:'#4c8582'},
+{name:'Loskop Dam',species:['Largemouth bass','Common carp','Mozambique tilapia'],color:'#4b837a'},
+{name:'Bloemhof Dam',species:['Common carp','African sharptooth catfish','Largemouth yellowfish'],color:'#5a8b8a'},
+{name:'Pongolapoort Dam',species:['Tigerfish','Mozambique tilapia','African sharptooth catfish'],color:'#4b817b'},
+{name:'Vaal River',species:['Smallmouth yellowfish','Largemouth yellowfish','Orange river mudfish'],color:'#4a8881'},
+{name:'Dullstroom Trout Waters',species:['Rainbow trout','Brown trout'],color:'#4c827d'}
+];
+let waterIndex=0;
+const mat=(name,color,rough=0.85)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.12,.14,.15);m.roughness=rough;return m};
+function box(name,pos,scale,material){const m=BABYLON.MeshBuilder.CreateBox(name,{width:scale[0],height:scale[1],depth:scale[2]},scene);m.position.set(...pos);m.material=material;return m}
+function makeScene(){
+ scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.66,.79,.82,1);scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.0034;scene.fogColor=new BABYLON.Color3(.66,.78,.79);
+ const hemi=new BABYLON.HemisphericLight('skyLight',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.78;hemi.groundColor=new BABYLON.Color3(.24,.28,.24);
+ const sun=new BABYLON.DirectionalLight('lateSun',new BABYLON.Vector3(-.42,-.78,.3),scene);sun.position=new BABYLON.Vector3(60,90,-70);sun.intensity=1.05;
+ camera=new BABYLON.UniversalCamera('firstPersonCamera',new BABYLON.Vector3(0,2.0,-9),scene);camera.minZ=.08;camera.fov=1.02;camera.inertia=.15;camera.angularSensibility=3500;camera.speed=.18;camera.keysUp=[];camera.keysDown=[];camera.keysLeft=[];camera.keysRight=[];scene.activeCamera=camera;
+ // lake and distant terrain
+ const ground=BABYLON.MeshBuilder.CreateGround('shoreGround',{width:300,height:300,subdivisions:32},scene);ground.position.set(0,-.25,15);ground.material=mat('ochre earth','#8d8b6c');
+ const shore=mat('bank grass','#586b4b');for(let i=0;i<75;i++){let x=(Math.random()-.5)*190,z=8+Math.random()*110;let h=.2+Math.random()*.8;const b=box('grass clump',[x,.05+h/2,z],[.12,h,.12],shore);b.rotation.z=(Math.random()-.5)*.25;}
+ const hillMat=mat('distant hills','#657b70');for(let i=0;i<24;i++){let x=(i-12)*16,z=70+Math.random()*45;let h=9+Math.random()*19;const hill=BABYLON.MeshBuilder.CreateSphere('hills',{diameter:1,segments:8},scene);hill.scaling.set(10+Math.random()*14,h,12+Math.random()*12);hill.position.set(x,h*.6,z);hill.material=hillMat;}
+ waterMat=mat('water surface','#3e817d',.32);waterMat.alpha=.91;waterMat.specularColor=new BABYLON.Color3(.55,.7,.7);
+ water=BABYLON.MeshBuilder.CreateGround('lake',{width:340,height:340,subdivisions:100},scene);water.position.set(0,-.12,190);water.material=waterMat;
+ // subtle animated wave texture generated locally
+ const dyn=new BABYLON.DynamicTexture('waterTexture',{width:256,height:256},scene,false);const ctx=dyn.getContext();ctx.fillStyle='#397b79';ctx.fillRect(0,0,256,256);for(let i=0;i<1100;i++){ctx.strokeStyle=`rgba(194,225,214,${Math.random()*.22})`;ctx.lineWidth=Math.random()*1.5+.3;let x=Math.random()*256,y=Math.random()*256;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+4+Math.random()*18,y+(Math.random()-.5)*2);ctx.stroke()}dyn.update();waterMat.diffuseTexture=dyn;waterMat.diffuseTexture.uScale=5;waterMat.diffuseTexture.vScale=8;
+ // reeds, shrubs and trees on bank
+ const trunk=mat('tree trunks','#4b4234'),leaf=mat('foliage','#354f3c'),reedMat=mat('reeds','#9b9a62');
+ for(let i=0;i<38;i++){let x=(Math.random()-.5)*130,z=2+Math.random()*38;if(Math.abs(x)<5&&z<16)continue;let h=3+Math.random()*7;const t=BABYLON.MeshBuilder.CreateCylinder('tree trunk',{height:h*.55,diameter:.35+Math.random()*.25},scene);t.position.set(x,h*.275,z);t.material=trunk;const c=BABYLON.MeshBuilder.CreateSphere('tree crown',{diameter:1.5+Math.random()*2,segments:7},scene);c.scaling.set(1.1,h*.16,1);c.position.set(x,h*.72,z);c.material=leaf;}
+ for(let i=0;i<100;i++){let x=(Math.random()-.5)*80,z=Math.random()*8+1;const r=box('reeds',[x,.4,z],[.08,1.1+Math.random()*1.4,.08],reedMat);r.rotation.z=(Math.random()-.5)*.3;}
+ // player hands / rod in camera space
+ playerRoot=new BABYLON.TransformNode('viewRig',scene);playerRoot.parent=camera;
+ const handMat=mat('glove','#3e4038'),rodMat=mat('carbon rod','#202a2d'),gripMat=mat('cork grip','#aa8356');
+ const hand=BABYLON.MeshBuilder.CreateSphere('right glove',{diameter:.28,segments:8},scene);hand.parent=playerRoot;hand.position.set(.42,-.42,.82);hand.scaling.set(1,.75,1.25);hand.material=handMat;
+ rodRoot=new BABYLON.TransformNode('rodRoot',scene);rodRoot.parent=playerRoot;rodRoot.position.set(.35,-.25,.55);rodRoot.rotation.x=-.22;rodRoot.rotation.z=-.24;
+ const rod=BABYLON.MeshBuilder.CreateCylinder('fishing rod',{height:2.2,diameterTop:.018,diameterBottom:.055,tessellation:8},scene);rod.parent=rodRoot;rod.rotation.x=-.34;rod.position.set(.05,.78,.1);rod.material=rodMat;
+ const grip=BABYLON.MeshBuilder.CreateCylinder('rod handle',{height:.45,diameter:.09,tessellation:8},scene);grip.parent=rodRoot;grip.position.set(.05,-.15,.1);grip.rotation.x=-.34;grip.material=gripMat;
+ const reel=BABYLON.MeshBuilder.CreateTorus('reel',{diameter:.18,thickness:.035,tessellation:12},scene);reel.parent=rodRoot;reel.position.set(.05,.02,.1);reel.rotation.x=1.2;reel.material=mat('reel metal','#8b9a9b',.35);
+ lineMesh=BABYLON.MeshBuilder.CreateLines('fishingLine',{points:[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,0)]},scene);lineMesh.color=new BABYLON.Color3(.9,.9,.75);lineMesh.isVisible=false;
+ bobber=BABYLON.MeshBuilder.CreateSphere('float',{diameter:.18,segments:10},scene);bobber.material=mat('red and white float','#ef5d4f');bobber.isVisible=false;
+ const white=mat('float white','#f4efe0');const half=BABYLON.MeshBuilder.CreateSphere('float lower',{diameter:.18,segments:10},scene);half.parent=bobber;half.position.y=-.04;half.material=white;
+ // boat at shoreline, used when boat mode toggled
+ boatMesh=new BABYLON.TransformNode('boat',scene);boatMesh.position.set(2,.05,-2);const hull=box('boat hull',[0,0,0],[2.5,.45,4.2],mat('boat hull material','#394b4c'));hull.parent=boatMesh;hull.position.y=-.05;
+ const inner=box('boat floor',[0,.2,0],[2.05,.08,3.5],mat('boat floor material','#7b8072'));inner.parent=boatMesh;
+ const seat=box('boat seat',[0,.42,.2],[1.3,.18,.5],mat('boat seat material','#343f40'));seat.parent=boatMesh;
+ boatMesh.setEnabled(false);
+ // a fish silhouette used as a visual when fish is fighting
+ fishMesh=BABYLON.MeshBuilder.CreateSphere('fish silhouette',{diameter:.65,segments:10},scene);fishMesh.scaling.set(1,.35,.35);fishMesh.material=mat('fish silver','#b5c8bb',.38);fishMesh.isVisible=false;
+ // pointer lock disabled on touch; landscape drag look controls
+ scene.onBeforeRenderObservable.add(()=>{
+   const dt=engine.getDeltaTime()/1000;
+   if(gameStarted && !$('catchCard').style.display.includes('flex')){
+    if(mode==='shore'){let f=move.y*.13,r=move.x*.13;camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(f));camera.position.addInPlace(camera.getDirection(BABYLON.Axis.X).scale(r));camera.position.y=2.0;}
+    else if(mode==='boat'){boatSpeed=move.y*.12;boatMesh.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(boatSpeed));boatMesh.position.y=.05;camera.position.copyFrom(boatMesh.position.add(new BABYLON.Vector3(0,2.0,0)));camera.position.addInPlace(camera.getDirection(BABYLON.Axis.Z).scale(-1.8));}
+   }
+   const t=performance.now()*.001;
+   water.position.y=-.16+Math.sin(t*.8)*.025;
+   if(bobber.isVisible){bobber.position.y=-.02+Math.sin(t*3.2)*.055;if(castPoint&&state!=='idle'){const start=camera.position.add(camera.getDirection(BABYLON.Axis.Z).scale(.6)).add(new BABYLON.Vector3(0,.2,0));lineMesh= BABYLON.MeshBuilder.CreateLines('fishingLine',{points:[start,bobber.position],instance:lineMesh});lineMesh.color=new BABYLON.Color3(.9,.9,.8);lineMesh.isVisible=true;}}
+   if(state==='waiting'){castTimer+=dt;if(performance.now()>biteAt){state='bite';biteAt=performance.now()+8000;showToast('BITE! Tap REEL IN to set the hook.');$('statusBar').style.display='block';tension=22;updateTension();}}
+   if(state==='bite'){tension=Math.min(100,tension+dt*5);updateTension();if(performance.now()>biteAt){state='lost';resetFishing();showToast('The fish got away. Try another cast.');}}
+   if(state==='fight'){tension+= (Math.random()*9-4);tension=Math.max(10,Math.min(100,tension));updateTension();if(fishMesh.isVisible){fishMesh.position.set(bobber.position.x+Math.sin(t*2)*1.2,-.3+Math.sin(t*3)*.1,bobber.position.z+Math.cos(t*2)*1.2);}}
+   if(state==='landed'){state='result';$('catchCard').style.display='flex';$('catchSpecies').textContent=fishName;$('catchDetails').textContent=`Weight: ${fishWeight.toFixed(2)} kg · Estimated reward: R ${Math.round(35+fishWeight*32)} · ${waters[waterIndex].name}`;}
+ });
+ return scene;
+}
+function updateTension(){$('tension').style.width=Math.round(tension)+'%';$('tension').style.background=tension>78?'#f07859':tension>55?'#e8c57c':'#75e3dc';}
+function showToast(msg){const el=$('toast');el.textContent=msg;el.style.display='block';clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.style.display='none',2800)}
+function resetFishing(){state='idle';tension=0;castPoint=null;bobber.isVisible=false;lineMesh.isVisible=false;fishMesh.isVisible=false;$('statusBar').style.display='none';updateTension();}
+function cast(){if(!gameStarted)return;if(state!=='idle'){showToast('Reel in or finish the current cast first.');return;}state='waiting';castTimer=0;biteAt=performance.now()+4500+Math.random()*8000;const dir=camera.getDirection(BABYLON.Axis.Z);castPoint=camera.position.add(dir.scale(12+Math.random()*5));castPoint.y=-.05;bobber.position.copyFrom(castPoint);bobber.isVisible=true;rodRoot.rotation.x=-.65;setTimeout(()=>{if(rodRoot)rodRoot.rotation.x=-.22},450);showToast('Cast out. Watch the float and wait for a bite.');}
+function reel(){if(!gameStarted)return;if(state==='waiting'){showToast('No bite yet — watch the float.');return;}if(state==='bite'){state='fight';tension=38;fishName=waters[waterIndex].species[Math.floor(Math.random()*waters[waterIndex].species.length)];fishWeight=.6+Math.random()*4.8;fishPower=12+Math.random()*15;fishMesh.isVisible=true;showToast('Hook set! Reel carefully — manage line tension.');return;}if(state==='fight'){tension+=10+Math.random()*8;if(tension>85){state='lost';resetFishing();showToast('Line snapped! Ease off when tension is red.');return;}if(tension>68){showToast('High tension — pause reeling briefly.');return;}if(Math.random()>.43){state='landed';fishMesh.isVisible=false;showToast('Fish landed!');}else{tension=Math.max(12,tension-5);showToast('Keep reeling — the fish is fighting.');}return;}if(state==='result'){showToast('Keep or release your catch first.');return;}showToast('Cast first to start fishing.');}
+function updateHud(){$('cash').textContent='R '+cash.toLocaleString('en-ZA');$('level').textContent='Level '+level+' · '+(level===1?'Rookie':level<4?'Angler':'Veteran');$('waterName').textContent=waters[waterIndex].name;$('equip').textContent=rodQuality?'Upgraded spinning rod':'Starter spinning rod';$('mapChip').textContent=mode==='boat'?'Boat mode':'Foot fishing';waterMat.diffuseColor=BABYLON.Color3.FromHexString(waters[waterIndex].color);}
+function startGame(){gameStarted=true;$('menu').style.display='none';$('hud').style.display='block';camera.position.set(0,2,-9);camera.rotation.set(0,0,0);mode='shore';boatMesh.setEnabled(false);updateHud();showToast('Welcome to the water. Move with the joystick and look by dragging the right side.');}
+function changeWater(){waterIndex=(waterIndex+1)%waters.length;camera.position.x=0;camera.position.z=-9;updateHud();showToast('Travelled to '+waters[waterIndex].name+'. Species lists are provisional for this prototype; verify local rules and records before fishing.');}
+function toggleBoat(){if(mode==='shore'){mode='boat';boatMesh.setEnabled(true);boatMesh.position.set(camera.position.x,0,camera.position.z+2);showToast('Boat launched. Use the joystick to steer.');}else{mode='shore';boatMesh.setEnabled(false);camera.position.y=2;showToast('Back on the bank.');}updateHud();}
+$('startBtn').onclick=startGame;
+$('castBtn').onclick=cast;$('reelBtn').onclick=reel;$('boatBtn').onclick=toggleBoat;$('changeWaterBtn').onclick=changeWater;
+$('pauseBtn').onclick=()=>{gameStarted=false;$('hud').style.display='none';$('menu').style.display='flex';resetFishing();};
+$('watersBtn').onclick=()=>{waterIndex=(waterIndex+1)%waters.length;$('menuContent').querySelector('.value').textContent=waters[waterIndex].name;showToast('Selected '+waters[waterIndex].name);};
+$('gearBtn').onclick=()=>{if(cash<150){showToast('An upgraded rod costs R150. Catch fish to earn money.');return;}cash-=150;rodQuality=1;updateHud();showToast('Rod upgraded. Better gear is represented by the prototype upgrade.');};
+$('helpBtn').onclick=()=>$('help').style.display='block';$('closeHelp').onclick=()=>$('help').style.display='none';
+$('keepBtn').onclick=()=>{cash+=Math.round(35+fishWeight*32);xp+=Math.round(fishWeight*8);if(xp>=40){level++;xp=0;}updateHud();$('catchCard').style.display='none';resetFishing();showToast('Catch kept. Reward added to your funds.');};
+$('releaseBtn').onclick=()=>{$('catchCard').style.display='none';resetFishing();showToast('Fish released. No reward collected.');};
+const pad=$('movePad'),stick=$('stick');let padRect;
+function setMove(e){const r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.34;let len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}move.x=dx/max;move.y=-dy/max;stick.style.left=(r.width/2-22+dx)+'px';stick.style.top=(r.height/2-22+dy)+'px';}
+pad.addEventListener('pointerdown',e=>{pad.setPointerCapture(e.pointerId);setMove(e);});pad.addEventListener('pointermove',e=>{if(e.buttons||e.pressure>0)setMove(e);});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>pad.addEventListener(ev,()=>{move={x:0,y:0};stick.style.left='36px';stick.style.top='36px';}));
+canvas.addEventListener('pointerdown',e=>{if(!gameStarted||e.clientX<window.innerWidth*.34)return;dragging=true;lastLook={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!dragging||!lastLook)return;let dx=e.clientX-lastLook.x,dy=e.clientY-lastLook.y;camera.rotation.y+=dx*.004;camera.rotation.x+=dy*.003;camera.rotation.x=Math.max(-1.1,Math.min(1.1,camera.rotation.x));lastLook={x:e.clientX,y:e.clientY};});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{dragging=false;lastLook=null;}));
+window.addEventListener('resize',()=>engine.resize());
+try{makeScene();engine.runRenderLoop(()=>{if(scene)scene.render();});$('loading').style.display='none';}
+catch(e){loadError.textContent='Unable to initialise 3D scene: '+e.message;console.error(e);}
+})();
+</script>
+</body></html>
